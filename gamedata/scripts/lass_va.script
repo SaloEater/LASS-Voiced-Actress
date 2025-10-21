@@ -1,3 +1,5 @@
+local get_config = lass_va_mcm.get_config
+
 local debug = true
 
 function dd(msg, ...)
@@ -64,6 +66,7 @@ function on_actor_hit_by_stalker(stalker)
 end
 
 local on_update_timer = 0
+local on_update_delay = 100
 local tg
 function actor_on_update()
     tg = time_global()
@@ -81,12 +84,23 @@ function actor_on_update()
     elseif IsStalker(obj) then
         on_actor_looking_at_stalker(obj)
     end
+    on_update_timer = tg + on_update_delay
 end
 
 function on_actor_looking_at_monster(monster)
     dd("Actor is looking at monster %s", monster:clsid())
     --TODO: maybe it's worth to delay monster identification when approach voice lines plays
-    lass_va_manager.at_distance(monster)
+    local distance = get_distance(db.actor:position(), monster:position())
+    if distance > get_config().distance then
+        lass_va_manager.at_distance(monster)
+    end
+end
+
+function get_distance(position_1, position_2)
+    local x = math.abs(position_1.x - position_2.x)
+    local z = math.abs(position_1.z - position_2.z)
+    local distance = math.sqrt((x * x) + (z * z))
+    return distance
 end
 
 function on_actor_looking_at_stalker(stalker)
@@ -95,6 +109,7 @@ end
 function on_game_start()
     RegisterScriptCallback("npc_on_fighting_actor", on_fighting_actor)
     RegisterScriptCallback("monster_on_death_callback", monster_on_death_callback)
+    RegisterScriptCallback("npc_on_death_callback", monster_on_death_callback)
     RegisterScriptCallback("actor_on_hit_callback", actor_on_hit_callback)
     RegisterScriptCallback("actor_on_update", actor_on_update)
 end

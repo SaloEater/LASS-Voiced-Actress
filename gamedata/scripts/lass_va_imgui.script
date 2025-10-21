@@ -56,8 +56,7 @@ local function render_lass_va_window()
                 -- Action columns: Buttons
                 for i, action in ipairs(actions) do
                     ImGui.TableNextColumn()
-                    local button_id = mutant .. "_" .. action
-                    if ImGui.Button(action .. "##" .. button_id) then
+                    if ImGui.Button(mutant .. "##" .. action) then
                         -- Call the voice system
                         lass_va_manager.actor_speak_common(mutant, action, 1.0, true)
                         dd("Triggered voice action: %s - %s", mutant, action)

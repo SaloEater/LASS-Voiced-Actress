@@ -1,5 +1,6 @@
 local dd = lass_va.dd
 local get_voice = lass_va_storage.get_voice
+local get_config = lass_va_mcm.get_config
 
 local file_to_say = nil
 local speaking_cooldown = 0
@@ -11,7 +12,7 @@ local mutant_states = {}
 end
 
 function at_distance(mutant)
-    return switch_mutant_action(mutant, "at_distance")
+    return timer_mutant_action(mutant, "at_distance", get_config().timers.at_distance)
 end
 
 function kill(mutant)
@@ -23,7 +24,7 @@ function approach(mutant)
 end
 
 function aggressive(mutant)
-    return timer_mutant_action(mutant, "aggressive", false, 5000)
+    return timer_mutant_action(mutant, "aggressive", false, get_config().timers.aggressive)
 end
 
 function actor_hit(mutant)
