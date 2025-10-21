@@ -1,0 +1,126 @@
+local dd = lass_va.dd
+local get_voice = lass_va_storage.get_voice
+
+local file_to_say = nil
+local speaking_cooldown = 0
+
+local mutant_states = {}
+
+    function first_time_encounter(mutant)
+    return switch_mutant_action(mutant, "first_time_encounter")
+end
+
+function at_distance(mutant)
+    return switch_mutant_action(mutant, "at_distance")
+end
+
+function kill(mutant)
+    return mutant_action(mutant, "kill")
+end
+
+function approach(mutant)
+    --return timer_mutant_action(mutant, "approach")
+end
+
+function aggressive(mutant)
+    return timer_mutant_action(mutant, "aggressive", false, 5000)
+end
+
+function actor_hit(mutant)
+    return switch_mutant_action(mutant, "actor_hit", true)
+end
+
+function switch_mutant_action(mutant, action, force_speak)
+    dd("[Switch] Mutant action triggered: %s - %s", mutant:clsid(), action)
+    local mutant_type = lass_va_storage.get_mutant_type(mutant:clsid())
+    if not mutant_type then
+        return
+    end
+    dd("[Switch] Mutant type identified: %s", mutant_type)
+
+    if not mutant_states[mutant_type] then
+        mutant_states[mutant_type] = {}
+        dd("[Switch] Initialized state for mutant type: %s", mutant_type)
+    end
+
+    if not mutant_states[mutant_type][action] then
+        mutant_states[mutant_type][action] = true
+        dd("[Switch] Invoking action for mutant type: %s - %s", mutant_type, action)
+        actor_speak_common(mutant_type, action, 1.0, force_speak)
+    else
+        dd("[Switch] Mutant type: %s - %s already invoked", mutant_type, action)
+    end
+end
+
+function timer_mutant_action(mutant, action, force_speak, timeout)
+    dd("[Timer] Mutant action triggered: %s - %s", mutant:clsid(), action)
+    local mutant_type = lass_va_storage.get_mutant_type(mutant:clsid())
+    if not mutant_type then
+        return
+    end
+    dd("[Timer] Mutant type identified: %s", mutant_type)
+
+    if not mutant_states[mutant_type] then
+        mutant_states[mutant_type] = {}
+        dd("[Timer] Initialized state for mutant type: %s", mutant_type)
+    end
+
+    if not mutant_states[mutant_type][action] then
+        mutant_states[mutant_type][action] = 0
+    end
+
+    local tg = time_global()
+    if tg >= mutant_states[mutant_type][action] then
+        mutant_states[mutant_type][action] = tg + timeout
+        dd("[Timer] Invoking action for mutant type: %s - %s", mutant_type, action)
+        actor_speak_common(mutant_type, action, 1.0, force_speak)
+    else
+        dd("[Timer] Mutant type: %s - %s is still on timeout, skip it", mutant_type, action)
+    end
+end
+
+function mutant_action(mutant, action)
+    dd("[Action] Mutant action triggered: %s - %s", mutant:clsid(), action)
+    local mutant_type = lass_va_storage.get_mutant_type(mutant:clsid())
+    if not mutant_type then
+        return
+    end
+    dd("[Action] Mutant type identified: %s", mutant_type)
+
+    actor_speak_common(mutant_type, action, 1.0, true)
+end
+
+function actor_speak_common(mutant, action, sound_volume, force_speak)
+    if not db.actor or db.actor:is_talking() or not db.actor:alive() then
+        return
+    end
+
+    if force_speak then
+        speaking_cooldown = 0
+    end
+
+    if time_global() < speaking_cooldown then
+        return
+    end
+
+    if file_to_say then
+        file_to_say:stop()
+    end
+
+    local voice_line = get_voice(mutant, action)
+    if voice_line then
+        actor_speak_file(voice_line, sound_volume, 5.0, 100)
+    end
+end
+
+function actor_speak_file(file, sound_volume, cooldown, chance)
+    if chance < 100 and  chance < math.random(1, 100) then
+        return
+    end
+
+    file_to_say = sound_object(file)
+    file_to_say:play(db.actor, 0, sound_object.s2d)
+    file_to_say.volume = sound_volume
+
+    speaking_cooldown = time_global() + cooldown -- applies the main cooldown
+end

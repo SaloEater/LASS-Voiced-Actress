@@ -1,0 +1,100 @@
+local debug = true
+
+function dd(msg, ...)
+    if debug then
+        printf("[LASS VA] " .. msg, ...)
+    end
+end
+
+function on_fighting_actor(npc)
+    if IsMonster(npc) then
+        on_monster_fighting_actor(npc)
+    elseif IsStalker(npc) then
+        on_stalker_fighting_actor(npc)
+    end
+end
+
+function on_monster_fighting_actor(monster)
+    dd("Monster %s is fighting the actor", monster:clsid())
+    lass_va_manager.first_time_encounter(monster)
+    lass_va_manager.aggressive(monster)
+end
+
+function on_stalker_fighting_actor(stalker)
+end
+
+function monster_on_death_callback(victim, killer)
+    if not killer or killer:id() ~= AC_ID then
+        return
+    end
+
+    if IsMonster(victim) then
+        on_monster_killed_by_actor(victim)
+    elseif IsStalker(victim) then
+        on_stalker_killed_by_actor(victim)
+    end
+end
+
+function on_monster_killed_by_actor(monster)
+    dd("Monster %s was killed by the actor", monster:clsid())
+    lass_va_manager.kill(monster)
+end
+
+function on_stalker_killed_by_actor(stalker)
+end
+
+function actor_on_hit_callback(obj, amount, local_direction, who, bone_index)
+    if not who or who:id() == AC_ID then
+        return
+    end
+
+    if IsMonster(who) then
+        on_actor_hit_by_monster(who)
+    elseif IsStalker(who) then
+        on_actor_hit_by_stalker(who)
+    end
+end
+
+function on_actor_hit_by_monster(monster)
+    dd("Actor was hit by monster %s", monster:clsid())
+    lass_va_manager.actor_hit(monster)
+end
+
+function on_actor_hit_by_stalker(stalker)
+end
+
+local on_update_timer = 0
+local tg
+function actor_on_update()
+    tg = time_global()
+    if tg < on_update_timer then
+        return
+    end
+
+    local obj = level.get_target_obj()
+    if not obj then
+        return
+    end
+
+    if IsMonster(obj) then
+        on_actor_looking_at_monster(obj)
+    elseif IsStalker(obj) then
+        on_actor_looking_at_stalker(obj)
+    end
+end
+
+function on_actor_looking_at_monster(monster)
+    dd("Actor is looking at monster %s", monster:clsid())
+    --TODO: maybe it's worth to delay monster identification when approach voice lines plays
+    lass_va_manager.at_distance(monster)
+end
+
+function on_actor_looking_at_stalker(stalker)
+end
+
+function on_game_start()
+    RegisterScriptCallback("npc_on_fighting_actor", on_fighting_actor)
+    RegisterScriptCallback("monster_on_death_callback", monster_on_death_callback)
+    RegisterScriptCallback("actor_on_hit_callback", actor_on_hit_callback)
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+end

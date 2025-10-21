@@ -1,0 +1,124 @@
+local dd = lass_va.dd
+
+local mutant_types = {
+    [clsid.bloodsucker] = "bloodsucker",
+    [clsid.bloodsucker_s] = "bloodsucker",
+    [clsid.boar] = "boar",
+    [clsid.boar_s] = "boar",
+    [clsid.dog_red] = "dog",
+    [clsid.dog_black] = "dog",
+    [clsid.dog_s] = "dog",
+    [clsid.flesh] = "flesh",
+    [clsid.flesh_s] = "flesh",
+    [clsid.pseudodog_s] = "pseudodog",
+    [clsid.burer] = "burer",
+    [clsid.burer_s] = "burer",
+    [clsid.cat] = "cat",
+    [clsid.cat_s] = "cat",
+    [clsid.rat] = "rat",
+    [clsid.rat_s] = "rat",
+    [clsid.chimera] = "chimera",
+    [clsid.chimera_s] = "chimera",
+    [clsid.controller] = "controller",
+    [clsid.controller_s] = "controller",
+    [clsid.fracture] = "fracture",
+    [clsid.fracture_s] = "fracture",
+    [clsid.poltergeist] = "poltergeist",
+    [clsid.poltergeist_s] = "poltergeist",
+    [clsid.pseudo_gigant] = "pseudo_gigant",
+    [clsid.gigant_s] = "gigant",
+    [clsid.zombie] = "zombie",
+    [clsid.zombie_s] = "zombie",
+    [clsid.snork] = "snork",
+    [clsid.snork_s] = "snork",
+    [clsid.tushkano] = "tushkano",
+    [clsid.tushkano_s] = "tushkano",
+    [clsid.psy_dog_s] = "psy_dog",
+    [clsid.psy_dog_phantom_s] = "psy_dog_phantom"
+}
+
+function get_mutant_type(mutant_clsid)
+    return mutant_types[mutant_clsid]
+end
+
+local voices_for_mutants = {
+}
+
+--run_string lass_va_storage.init_lass_va()
+local lang = "eng"
+
+function get_voice(mutant, action)
+    if voices_for_mutants[mutant] and voices_for_mutants[mutant][action] then
+        local voice_lines = voices_for_mutants[mutant][action]
+        if #voice_lines > 0 then
+            local index = math.random(1, #voice_lines)
+            return "characters_voice\\player_" .. lang .. "\\lass_va\\" .. mutant .. "\\" .. action .. "\\" .. voice_lines[index]
+        end
+    end
+    return nil
+end
+
+function init_lass_va()
+    voices_for_mutants = {}
+    local base_path = "characters_voice\\player_" .. lang .. "\\lass_va\\"
+    local fs = getFS()
+
+    local function get_dirs(path)
+        local dirs = {}
+        local flist = fs:file_list_open(path, FS.FS_ListFolders)
+        if flist then
+            for i=0, flist:Size()-1 do
+                local name = flist:GetAt(i)
+                -- Remove trailing backslash if present
+                if string.sub(name, -1) == "\\" then
+                    name = string.sub(name, 1, -2)
+                end
+                table.insert(dirs, name)
+            end
+            flist:Free()
+        else
+            dd("Warning - could not open directory: %s", path)
+        end
+        return dirs
+    end
+
+    local function get_files(path)
+        local files = {}
+        local flist = fs:file_list_open(path, FS.FS_ListFiles)
+        local f_cnt = flist:Size()
+        if flist then
+            for i=0, f_cnt-1 do
+                local name = flist:GetAt(i)
+                name = string.sub(name, 1, -5) -- remove .ogg
+                table.insert(files, name)
+            end
+            flist:Free()
+        else
+            dd("Warning - could not open directory: %s", path)
+        end
+        return files
+    end
+
+    local root_path = fs:update_path("$game_sounds$", base_path)
+    local mutant_dirs = get_dirs(root_path)
+
+    -- Rest of your function remains unchanged
+    for _, mutant in ipairs(mutant_dirs) do
+        voices_for_mutants[mutant] = {}
+        local mutant_path = root_path .. mutant .. "\\"
+        local action_dirs = get_dirs(mutant_path)
+
+        for _, action in ipairs(action_dirs) do
+            local action_path = mutant_path .. action .. "\\"
+            voices_for_mutants[mutant][action] = get_files(action_path)
+            dd("Loaded %s voice files for mutant '%s' action '%s'", table.size(voices_for_mutants[mutant][action]), mutant, action)
+        end
+        dd("Loaded %s actions for mutant '%s'", table.size(voices_for_mutants[mutant]), mutant)
+    end
+
+    dd("Initialized voice actions for %s mutant types", table.size(voices_for_mutants))
+end
+
+function on_game_start()
+    init_lass_va()
+end

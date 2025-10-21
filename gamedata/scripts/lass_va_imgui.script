@@ -1,0 +1,86 @@
+-------------------------------------------------------------------------------
+-- LASS VA ImGui Interface
+-------------------------------------------------------------------------------
+-- Adds "Lass VA" menu item to the Mods group in ImGui overlay
+-------------------------------------------------------------------------------
+
+local dd = lass_va.dd
+
+-- ImGui window state
+local show_lass_va_window = false
+
+-- Define mutant types and actions based on the system
+local mutant_types = {
+    "bloodsucker", "boar", "dog", "flesh", "pseudodog", "burer", 
+    "cat", "rat", "chimera", "controller", "fracture", "poltergeist", 
+    "pseudo_gigant", "gigant", "zombie", "snork", "tushkano", 
+    "psy_dog", "psy_dog_phantom"
+}
+
+local actions = {
+    "first_time_encounter", "at_distance", "kill", "aggressive", "actor_hit"
+}
+
+-- Function to render the main LASS VA window
+local function render_lass_va_window()
+    if not show_lass_va_window then
+        return
+    end
+    
+    local window_flags = 64 -- ImGui.WindowFlags_AlwaysAutoResize
+    
+    local expanded, visible = ImGui.Begin("LASS VA - Voice Action Testing", show_lass_va_window, window_flags)
+    show_lass_va_window = visible
+    if expanded then
+        ImGui.Text("LASS VA - Live Audio System for S.T.A.L.K.E.R.")
+        ImGui.Text("Click buttons to test voice actions for each mutant type")
+        ImGui.Separator()
+        
+        -- Voice Actions Table
+        if ImGui.BeginTable("VoiceActionsTable", table.size(actions), 65, vector2(0, 0), 0) then
+            -- Header row
+            ImGui.TableSetupColumn("Mutant Type", 2, 0, 0) -- WidthFixed=2
+            for _, action in ipairs(actions) do
+                ImGui.TableSetupColumn(action, 2, 0, 0) -- WidthFixed=2
+            end
+            ImGui.TableHeadersRow()
+            
+            -- Data rows
+            for _, mutant in ipairs(mutant_types) do
+                ImGui.TableNextRow()
+                
+                -- First column: Mutant name
+                ImGui.TableNextColumn()
+                ImGui.Text(mutant)
+                
+                -- Action columns: Buttons
+                for i, action in ipairs(actions) do
+                    ImGui.TableNextColumn()
+                    local button_id = mutant .. "_" .. action
+                    if ImGui.Button(action .. "##" .. button_id) then
+                        -- Call the voice system
+                        lass_va_manager.actor_speak_common(mutant, action, 1.0, true)
+                        dd("Triggered voice action: %s - %s", mutant, action)
+                    end
+                end
+            end
+            
+            ImGui.EndTable()
+        end
+    end
+    ImGui.End()
+end
+
+-- Register the main window renderer with Unique group so it renders every frame
+ImGui.Groups.Main.Widget(render_lass_va_window)
+
+-- Register menu item with Mods group
+ImGui.Groups.Mods.Widget(function()
+    local _
+    _, show_lass_va_window = ImGui.MenuItem("Lass VA", nil, show_lass_va_window, true)
+end)
+
+-- Initialization
+function on_game_start()
+    dd("LASS VA ImGui interface initialized")
+end
