@@ -1,0 +1,112 @@
+local config = {
+    distance = 10,
+    timers = {
+        aggressive = 5000,
+        at_distance = 5000,
+    }
+}
+
+function get_config()
+    return config
+end
+
+function set_config(key, value)
+    if key == "distance" then
+        config.distance = value
+    elseif key == "timer_aggressive" then
+        config.timers.aggressive = value
+    elseif key == "timer_at_distance" then
+        config.timers.at_distance = value
+    end
+end
+
+function on_option_change()
+    config.distance = ui_mcm.get("lass_va.distance") or config.distance
+    config.timers.aggressive = ui_mcm.get("lass_va.timer_aggressive") or config.timers.aggressive
+    config.timers.at_distance = ui_mcm.get("lass_va.timer_at_distance") or config.timers.at_distance
+end
+
+function display_as_timestamp_with_ms(wrapbox,handlers,v,flags)
+    printf("handlers.txt=%s",handlers.txt)
+    local seconds = tonumber(handlers.txt) or 0
+    local ms = seconds % 1000
+    seconds = math.floor(seconds / 1000)
+    local minutes = math.floor(seconds / 60)
+    seconds = seconds % 60
+    if minutes > 0 then
+        handlers.txt = string.format("%sm %s.%ss", minutes, seconds, ms)
+    elseif seconds > 0 then
+        handlers.txt = string.format("%s.%ss", seconds, ms)
+    else
+        handlers.txt = string.format("%sms", ms)
+    end
+end
+
+function display_as_meters(wrapbox,handlers,v,flags)
+    printf("handlers.txt=%s",handlers.txt)
+    local value = tonumber(handlers.txt) or 0
+    handlers.txt = string.format("%sm", tostring(value))
+end
+
+function on_mcm_load()
+    local op = {
+        id = "lass_va",
+        sh = true,
+        gr = {
+            {
+                id = "title",
+                type = "slide",
+                link = "ui_mcm_lass_va_title",
+                text = "ui_mcm_lass_va_title",
+                size = {512, 50},
+                spacing = 20
+            },
+            {
+                id = "general_settings",
+                type = "title",
+                text = "ui_mcm_lass_va_general_settings"
+            },
+            {
+                id = "distance",
+                type = "track",
+                val = 2,
+                def = 150,
+                min = 1,
+                max = 150,
+                step = 1,
+                text = "lass_va_distance",
+                hint = "lass_va_distance_hint",
+                ui_hook_functor = {display_as_meters}
+            },
+            {
+                id = "timer_settings",
+                type = "title",
+                text = "ui_mcm_lass_va_timer_settings"
+            },
+            {
+                id = "aggressive_timer",
+                type = "track",
+                val = 2,
+                def = 5000,
+                min = 50,
+                max = 30000,
+                step = 50,
+                hint = "lass_va_aggressive_timer_hint",
+                ui_hook_functor = {display_as_timestamp_with_ms}
+            },
+            {
+                id = "at_distance_timer",
+                type = "track",
+                val = 2,
+                def = 5000,
+                min = 50,
+                max = 30000,
+                step = 50,
+                hint = "lass_va_at_distance_timer_hint",
+                ui_hook_functor = {display_as_timestamp_with_ms}
+            }
+        }
+    }
+
+    return op
+end
