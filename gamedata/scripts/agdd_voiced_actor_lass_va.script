@@ -1,0 +1,39 @@
+local dd = lass_va.dd
+
+if not agdd_voiced_actor then
+    dd("agdd_voiced_actor_lass_va.script loaded before agdd_voiced_actor.script! This is not supported.")
+    return
+end
+
+local old_monster_on_death_callback = agdd_voiced_actor.monster_on_death_callback
+local old_actor_on_before_hit = agdd_voiced_actor.actor_on_before_hit
+local old_npc_on_death_callback = agdd_voiced_actor.npc_on_death_callback
+
+local old_lass_va_monster_on_death_callback = lass_va.monster_on_death_callback
+function lass_va.monster_on_death_callback(victim, killer)
+    local success = old_lass_va_monster_on_death_callback(victim, killer)
+    if success then
+        return true
+    end
+
+    if IsMonster(who) then
+        old_monster_on_death_callback(victim, killer)
+    elseif IsStalker(who) then
+        old_npc_on_death_callback(victim, killer)
+    end
+end
+
+local old_lass_va_actor_on_hit_callback = lass_va.actor_on_hit_callback
+function lass_va.actor_on_hit_callback(obj, amount, local_direction, who, bone_index)
+    local success = old_lass_va_actor_on_hit_callback(obj, amount, local_direction, who, bone_index)
+    if success then
+        return true
+    end
+    old_actor_on_before_hit(obj, amount, local_direction, who, bone_index)
+end
+
+function on_game_start()
+    UnregisterScriptCallback( "monster_on_death_callback", old_monster_on_death_callback )
+    UnregisterScriptCallback( "actor_on_before_hit", old_actor_on_before_hit )
+    UnregisterScriptCallback( "npc_on_death_callback", old_npc_on_death_callback )
+end
